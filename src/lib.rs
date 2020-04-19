@@ -310,7 +310,6 @@ struct BuiltinBadge<'a> {
     status_text_width: u32,
     text_color: Color<'a>,
     text_shadow_color: Color<'a>,
-    // TODO: remove?
     text_shadow_opacity: f32,
 }
 
