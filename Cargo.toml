@@ -1,0 +1,15 @@
+[package]
+name = "badgen"
+version = "0.1.0"
+authors = ["avitex <theavitex@gmail.com>"]
+edition = "2018"
+categories = ["graphics", "no-std"]
+description = "Badge generator"
+documentation = "https://docs.rs/badgen"
+homepage = "https://github.com/avitex/rust-badgen"
+repository = "https://github.com/avitex/rust-badgen"
+license = "MIT"
+readme = "README.md"
+
+[dependencies]
+# no deps here :)
