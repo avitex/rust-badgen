@@ -5,7 +5,7 @@
 # rust-badgen
 
 **A Rust implementation of [github.com/badgen/badgen](https://github.com/badgen/badgen).**  
-Documentation hosted on [docs.rs](https://docs.rs/arae).
+Documentation hosted on [docs.rs](https://docs.rs/badgen).
 
 ```toml
 [dependencies]
