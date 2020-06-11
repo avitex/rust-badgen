@@ -1,4 +1,14 @@
 fn main() {
     // TODO: expand this...
-    println!("{}", badgen::Builder::new("downloads", "12").build().unwrap());
+    let mut out = String::new();
+
+    badgen::badge(
+        &mut out,
+        &badgen::Style::classic(),
+        "99.99",
+        Some("crates.io"),
+    )
+    .unwrap();
+
+    println!("{}", out);
 }

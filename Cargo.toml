@@ -11,5 +11,19 @@ repository = "https://github.com/avitex/rust-badgen"
 license = "MIT"
 readme = "README.md"
 
+[features]
+default = []
+pretty = []
+
 [dependencies]
-# no deps here :)
+uluru = "0.4"
+numtoa = "0.2"
+svgtypes = "0.5"
+ttf-parser = "0.6"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "generation"
+harness = false
