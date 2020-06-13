@@ -35,6 +35,7 @@ mod style;
 mod svg;
 mod text;
 
+use alloc::string::String;
 use alloc::vec::Vec;
 use core::{fmt, str};
 
@@ -60,7 +61,13 @@ pub struct Point<T = u32> {
     pub y: T,
 }
 
-pub fn badge<W>(
+pub fn badge(style: &Style<'_>, status: &str, label: Option<&str>) -> Result<String, fmt::Error> {
+    let mut out = String::with_capacity(8192);
+    write_badge(&mut out, style, status, label)?;
+    Ok(out)
+}
+
+pub fn write_badge<W>(
     w: &mut W,
     style: &Style<'_>,
     status: &str,
@@ -73,11 +80,11 @@ where
     let scale = font.height() as f32 / LINE_HEIGHT as f32;
 
     let mut renderer = ScaledFont::new(&font, scale);
-    let mut scratch = Vec::with_capacity(4098);
-    badge_with_font(w, style, status, label, &mut renderer, &mut scratch)
+    let mut scratch = Vec::with_capacity(4096);
+    write_badge_with_font(w, style, status, label, &mut renderer, &mut scratch)
 }
 
-pub fn badge_with_font<W, R>(
+pub fn write_badge_with_font<W, R>(
     w: &mut W,
     style: &Style<'_>,
     status: &str,

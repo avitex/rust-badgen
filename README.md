@@ -16,10 +16,11 @@ badgen = "0.1.0"
 
 ```rust
 // Classic style
-let badge = badgen::Builder::new("downloads", "12").build().unwrap();
+let badge = badgen::badge(&badgen::Style::classic(), "12", Some("downloads")).unwrap();
+
 println!("{}", badge);
 
 // Flat style
-let badge = badgen::Builder::new("downloads", "12").flat().build().unwrap();
+let badge = badgen::badge(&badgen::Style::flat(), "12", Some("downloads")).unwrap();
 println!("{}", badge);
 ```

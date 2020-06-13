@@ -6,7 +6,7 @@ fn main() {
 
     for _ in 0..10_000 {
         out.clear();
-        badgen::badge_with_font(
+        badgen::write_badge_with_font(
             &mut out,
             &badgen::Style::classic(),
             "99.99",
