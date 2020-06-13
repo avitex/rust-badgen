@@ -56,9 +56,9 @@ const VIEWBOX_HEIGHT: u32 = 2000;
 const VIEWBOX_ORIGIN: Point = Point { x: 0, y: 0 };
 
 #[derive(Debug, Clone, Copy)]
-pub struct Point {
-    pub x: u32,
-    pub y: u32,
+pub struct Point<T = u32> {
+    pub x: T,
+    pub y: T,
 }
 
 pub fn badge<W>(

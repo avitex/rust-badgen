@@ -54,18 +54,22 @@ impl<'a> fmt::Display for Escape<'a> {
 
 struct PathSink<'a> {
     scale: f32,
-    last: Point,
+    last: Point<f32>,
     path: &'a mut Vec<u8>,
-    fmtbuf: [u8; 16],
+    i32_buf: [u8; 16],
+    f32_buf: ryu::Buffer,
+    integer_path: bool,
 }
 
 impl<'a> PathSink<'a> {
-    fn new(scale: f32, path: &'a mut Vec<u8>) -> Self {
+    fn new(scale: f32, integer_path: bool, path: &'a mut Vec<u8>) -> Self {
         Self {
             path,
             scale,
-            fmtbuf: [0u8; 16],
-            last: Point { x: 0, y: 0 },
+            integer_path,
+            f32_buf: Default::default(),
+            i32_buf: Default::default(),
+            last: Point { x: 0.0, y: 0.0 },
         }
     }
 
@@ -86,31 +90,33 @@ impl<'a> PathSink<'a> {
 
     #[inline]
     fn write_scaled_f32(&mut self, v: f32, first: bool) {
-        self.write_i32((v * self.scale) as i32, first);
+        self.write_f32(v * self.scale, first);
     }
 
     #[inline]
-    fn write_i32(&mut self, v: i32, first: bool) {
-        if !first && v >= 0 {
-            self.write_str(",");
+    fn write_f32(&mut self, v: f32, first: bool) {
+        if !first && v >= 0.0 {
+            self.write_str(" ");
         }
-        let bytes = v.numtoa(10, &mut self.fmtbuf);
+        let vi32 = v as i32;
+        let bytes = if self.integer_path || v == vi32 as f32 {
+            vi32.numtoa(10, &mut self.i32_buf[..])
+        } else {
+            self.f32_buf.format_finite(v).as_bytes()
+        };
         self.path.extend_from_slice(bytes)
     }
 
     #[inline]
-    fn write_move_to_abs(&mut self, point: Point) {
+    fn write_move_to_abs(&mut self, point: Point<f32>) {
         self.write_str("M");
-        self.write_i32(point.x as i32, true);
-        self.write_i32(point.y as i32, false);
+        self.write_f32(point.x, true);
+        self.write_f32(point.y, false);
     }
 
     #[inline]
     fn set_last(&mut self, x: f32, y: f32) {
-        self.last = Point {
-            x: x as u32,
-            y: y as u32,
-        };
+        self.last = Point { x, y };
     }
 }
 
@@ -165,12 +171,13 @@ pub trait TextRenderer {
 
 struct CacheEntry {
     c: char,
-    hor_adv: u32,
+    hor_adv: f32,
     path: Vec<u8>,
 }
 
 pub struct ScaledFont<'a> {
     scale: f32,
+    integer_path: bool,
     font: &'a Font<'a>,
     cache: LRUCache<[Entry<CacheEntry>; 256]>,
 }
@@ -180,16 +187,24 @@ impl<'a> ScaledFont<'a> {
         Self {
             scale,
             font,
+            integer_path: true,
             cache: LRUCache::default(),
         }
+    }
+
+    pub fn float_path(mut self) -> Self {
+        self.integer_path = false;
+        self
     }
 }
 
 impl<'a> TextRenderer for ScaledFont<'a> {
     fn render(&mut self, text: &str, path: &mut Vec<u8>, origin: Point) -> Option<u32> {
-        let mut sink = PathSink::new(self.scale, path);
-        let mut next_glyph_origin = origin;
-
+        let mut sink = PathSink::new(self.scale, self.integer_path, path);
+        let mut next_glyph_origin = Point {
+            x: origin.x as f32,
+            y: origin.y as f32,
+        };
         for c in text.chars() {
             sink.set_last(0.0, 0.0);
             sink.write_move_to_abs(next_glyph_origin);
@@ -204,7 +219,7 @@ impl<'a> TextRenderer for ScaledFont<'a> {
                 let start = sink.path.len();
                 if let Some(_) = self.font.outline_glyph(glyph_id, &mut sink) {
                     let hor_adv = self.font.glyph_hor_advance(glyph_id).unwrap();
-                    let hor_adv = (hor_adv as f32 * self.scale) as u32;
+                    let hor_adv = hor_adv as f32 * self.scale;
                     next_glyph_origin.x += hor_adv;
                     let cache_entry = CacheEntry {
                         c,
@@ -220,6 +235,6 @@ impl<'a> TextRenderer for ScaledFont<'a> {
             }
         }
 
-        Some(next_glyph_origin.x - origin.x)
+        Some(next_glyph_origin.x as u32 - origin.x)
     }
 }
