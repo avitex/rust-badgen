@@ -296,13 +296,8 @@ fn render_text_path<T: TextRenderer>(
     text: &str,
     buf: &mut Vec<u8>,
 ) -> u32 {
+    // TODO
     renderer.render(text, buf, origin).unwrap()
-    // let mut sink = PathSink::new(origin, buf);
-    // if let Some(width) = font.outline(text, &mut sink) {
-    //     width
-    // } else {
-    //     panic!("failed to render text")
-    // }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
