@@ -14,7 +14,7 @@
 //! | `side-margin`       | `500`                                                                                   |
 //! | `middle-margin`     | `550`                                                                                   |
 //! | `line-height`       | `1100`                                                                                  |
-//! | `line-margin`       | `(<viewbox-height> - <line-height>) / 2`                                                |
+//! | `line-margin`       | `(<viewbox-height> - <x-height>) / 2`                                                   |
 //! | `label-text-width`  | Calculated on render                                                                    |
 //! | `status-text-width` | Calculated on render                                                                    |
 
@@ -51,7 +51,6 @@ const STATUS_PATH_ID: &str = "s";
 const SIDE_MARGIN: u32 = 500;
 const MIDDLE_MARGIN: u32 = 1100;
 const LINE_HEIGHT: u32 = 1100;
-const LINE_MARGIN: u32 = (VIEWBOX_HEIGHT - LINE_HEIGHT) / 2;
 const VIEWBOX_HEIGHT: u32 = 2000;
 const VIEWBOX_ORIGIN: Point = Point { x: 0, y: 0 };
 
@@ -71,7 +70,9 @@ where
     W: fmt::Write,
 {
     let font = raleway_reg_font();
-    let mut renderer = ScaledFont::new(&font, 1.0);
+    let scale = font.height() as f32 / LINE_HEIGHT as f32;
+
+    let mut renderer = ScaledFont::new(&font, scale);
     let mut scratch = Vec::with_capacity(4098);
     badge_with_font(w, style, status, label, &mut renderer, &mut scratch)
 }
@@ -92,18 +93,19 @@ where
     scratch.clear();
 
     let viewbox_scale = VIEWBOX_HEIGHT as f32 / style.height as f32;
+    let line_margin = (VIEWBOX_HEIGHT - renderer.x_height()) / 2;
 
     let mut status_path_offset = 0;
     let mut next_text_origin = Point {
         x: SIDE_MARGIN,
-        y: LINE_MARGIN,
+        y: VIEWBOX_HEIGHT - line_margin,
     };
 
     // If a label is specified, render and calculate the width.
     let label_width = if let Some(label) = label {
         let label_width = render_text_path(renderer, next_text_origin, label, scratch);
         status_path_offset += scratch.len();
-        next_text_origin.x += label_width + SIDE_MARGIN + MIDDLE_MARGIN;
+        next_text_origin.x += label_width + MIDDLE_MARGIN;
         label_width
     } else {
         0
@@ -116,7 +118,7 @@ where
 
     // Calculate rect widths.
     let (status_rect_width, label_rect_width) = if has_label {
-        let rect_margin = SIDE_MARGIN + MIDDLE_MARGIN;
+        let rect_margin = SIDE_MARGIN + (MIDDLE_MARGIN / 2);
         (status_width + rect_margin, label_width + rect_margin)
     } else {
         let rect_margin = SIDE_MARGIN * 2;

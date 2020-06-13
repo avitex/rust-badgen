@@ -166,6 +166,8 @@ impl<'a> OutlineBuilder for PathSink<'a> {
 }
 
 pub trait TextRenderer {
+    fn x_height(&self) -> u32;
+
     fn render(&mut self, text: &str, path: &mut Vec<u8>, origin: Point) -> Option<u32>;
 }
 
@@ -192,6 +194,12 @@ impl<'a> ScaledFont<'a> {
         }
     }
 
+    pub fn x_height(&self) -> u32 {
+        // TODO: bad default?
+        let x_height = self.font.x_height().unwrap_or(self.font.height());
+        (x_height as f32 * self.scale) as u32
+    }
+
     pub fn float_path(mut self) -> Self {
         self.integer_path = false;
         self
@@ -199,6 +207,10 @@ impl<'a> ScaledFont<'a> {
 }
 
 impl<'a> TextRenderer for ScaledFont<'a> {
+    fn x_height(&self) -> u32 {
+        ScaledFont::x_height(self)
+    }
+
     fn render(&mut self, text: &str, path: &mut Vec<u8>, origin: Point) -> Option<u32> {
         let mut sink = PathSink::new(self.scale, self.integer_path, path);
         let mut next_glyph_origin = Point {
