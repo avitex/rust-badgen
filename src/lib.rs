@@ -36,7 +36,6 @@ mod svg;
 mod text;
 
 use alloc::string::String;
-use alloc::vec::Vec;
 use core::{fmt, str};
 
 pub use self::style::*;
@@ -76,31 +75,42 @@ pub fn write_badge<W>(
 where
     W: fmt::Write,
 {
-    let font = raleway_reg_font();
-    let scale = font.height() as f32 / LINE_HEIGHT as f32;
-
-    let mut renderer = ScaledFont::new(&font, scale);
-    let mut scratch = Vec::with_capacity(4096);
-    write_badge_with_font(w, style, status, label, &mut renderer, &mut scratch)
+    let ttf_font = notosans_font();
+    let mut font = font(&ttf_font);
+    let mut scratch = String::with_capacity(4096);
+    write_badge_with_font(w, style, status, label, &mut font, &mut scratch)
 }
 
-pub fn write_badge_with_font<W, R>(
+pub fn font<'a>(
+    font: &'a ttf_parser::Font<'a>,
+) -> CachedFont<TrueTypeFont<'a>> {
+    font_with_precision(font, 1)
+}
+
+pub fn font_with_precision<'a>(
+    font: &'a ttf_parser::Font<'a>,
+    precision: u8,
+) -> CachedFont<TrueTypeFont<'a>> {
+    CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT, precision))
+}
+
+pub fn write_badge_with_font<W, F>(
     w: &mut W,
     style: &Style<'_>,
     status: &str,
     label: Option<&str>,
-    renderer: &mut R,
-    scratch: &mut Vec<u8>,
+    font: &mut F,
+    scratch: &mut String,
 ) -> Result<(), fmt::Error>
 where
     W: fmt::Write,
-    R: TextRenderer,
+    F: Font,
 {
     // Clear the scratch buffer from any previous run.
     scratch.clear();
 
     let viewbox_scale = VIEWBOX_HEIGHT as f32 / style.height as f32;
-    let line_margin = (VIEWBOX_HEIGHT - renderer.x_height()) / 2;
+    let line_margin = (VIEWBOX_HEIGHT - font.height()) / 2;
 
     let mut status_path_offset = 0;
     let mut next_text_origin = Point {
@@ -110,7 +120,7 @@ where
 
     // If a label is specified, render and calculate the width.
     let label_width = if let Some(label) = label {
-        let label_width = render_text_path(renderer, next_text_origin, label, scratch);
+        let label_width = render_text_path(font, next_text_origin, label, scratch);
         status_path_offset += scratch.len();
         next_text_origin.x += label_width + MIDDLE_MARGIN;
         label_width
@@ -121,7 +131,7 @@ where
     let has_label = status_path_offset > 0;
 
     // Render the status text path into the scratch buffer.
-    let status_width = render_text_path(renderer, next_text_origin, status, scratch);
+    let status_width = render_text_path(font, next_text_origin, status, scratch);
 
     // Calculate rect widths.
     let (status_rect_width, label_rect_width) = if has_label {
@@ -144,16 +154,12 @@ where
         y: (viewbox_size.y as f32 / viewbox_scale) as u32,
     };
 
-    // Get the path strings for both the label and status.
-    // Note: Neither of these unwraps will never panic as the
-    // strings are built safely.
-    // TODO: use unsafe?
-    let label_text_path = if has_label {
-        Some(str::from_utf8(&scratch[..status_path_offset]).unwrap())
+    let (label_text_path, status_text_path) = if has_label {
+        let (label, status) = scratch.split_at(status_path_offset);
+        (Some(label), status)
     } else {
-        None
+        (None, &scratch[..])
     };
-    let status_text_path = str::from_utf8(&scratch[status_path_offset..]).unwrap();
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -297,16 +303,6 @@ where
     ///////////////////////////////////////////////////////////////////////////
 
     svg.finish().map(drop)
-}
-
-fn render_text_path<T: TextRenderer>(
-    renderer: &mut T,
-    origin: Point,
-    text: &str,
-    buf: &mut Vec<u8>,
-) -> u32 {
-    // TODO
-    renderer.render(text, buf, origin).unwrap()
 }
 
 ///////////////////////////////////////////////////////////////////////////////

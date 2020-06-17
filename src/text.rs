@@ -1,21 +1,20 @@
-use alloc::vec::Vec;
+use alloc::string::String;
 use core::fmt;
 
-use numtoa::NumToA;
-use ttf_parser::{Font, OutlineBuilder};
+use ttf_parser::{Font as TrueTypeFontInner, OutlineBuilder};
 use uluru::{Entry, LRUCache};
 
 use super::Point;
 
-const RALEWAY_LICENSE: &str = include_str!("../data/fonts/raleway/OFL.txt");
-const RALEWAY_REG_DATA: &[u8] = include_bytes!("../data/fonts/raleway/Raleway-Regular.ttf");
+const NOTOSANS_LICENSE: &str = include_str!("../data/fonts/notosans/LICENSE.txt");
+const NOTOSANS_DATA: &[u8] = include_bytes!("../data/fonts/notosans/NotoSans-Regular.ttf");
 
-pub fn raleway_reg_font() -> ttf_parser::Font<'static> {
-    ttf_parser::Font::from_data(RALEWAY_REG_DATA, 0).unwrap()
+pub fn notosans_font() -> ttf_parser::Font<'static> {
+    ttf_parser::Font::from_data(NOTOSANS_DATA, 0).unwrap()
 }
 
 pub fn font_licenses() -> &'static [&'static str] {
-    &[RALEWAY_LICENSE]
+    &[NOTOSANS_LICENSE]
 }
 
 /// Escapes bad characters for displaying within XML/HTML.
@@ -52,30 +51,174 @@ impl<'a> fmt::Display for Escape<'a> {
     }
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+pub trait Font {
+    fn height(&self) -> u32;
+
+    fn render_glyph<'a>(&'a mut self, c: char) -> Option<FontGlyph<'a>>;
+
+    fn scale(&self) -> f32 {
+        1.0
+    }
+
+    fn precision(&self) -> u8 {
+        1
+    }
+}
+
+#[derive(Debug)]
+pub struct FontGlyph<'a> {
+    pub path: Option<&'a str>,
+    pub hor_advance: f32,
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+struct CachedGlyph {
+    path: Option<String>,
+    character: char,
+    hor_advance: f32,
+}
+
+pub struct CachedFont<T> {
+    font: T,
+    cache: LRUCache<[Entry<CachedGlyph>; 256]>,
+}
+
+impl<T> CachedFont<T> {
+    pub fn new(font: T) -> Self {
+        Self {
+            font,
+            cache: Default::default(),
+        }
+    }
+}
+
+impl<T> Font for CachedFont<T>
+where
+    T: Font,
+{
+    fn height(&self) -> u32 {
+        self.font.height()
+    }
+
+    fn render_glyph<'a>(&'a mut self, c: char) -> Option<FontGlyph<'a>> {
+        if self.cache.touch(|entry| entry.character == c) {
+            return self.cache.front().map(|entry| FontGlyph {
+                path: entry.path.as_ref().map(String::as_str),
+                hor_advance: entry.hor_advance,
+            });
+        }
+
+        match self.font.render_glyph(c) {
+            Some(glyph) => {
+                self.cache.insert(CachedGlyph {
+                    character: c,
+                    path: glyph.path.map(String::from),
+                    hor_advance: glyph.hor_advance,
+                });
+                Some(glyph)
+            }
+            None => None,
+        }
+    }
+
+    fn scale(&self) -> f32 {
+        self.font.scale()
+    }
+
+    fn precision(&self) -> u8 {
+        self.font.precision()
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone)]
+pub struct TrueTypeFont<'a> {
+    font: &'a TrueTypeFontInner<'a>,
+    scale: f32,
+    height: u32,
+    precision: u8,
+    path_buffer: String,
+}
+
+impl<'a> TrueTypeFont<'a> {
+    pub fn new(font: &'a TrueTypeFontInner<'a>, font_size: u32, precision: u8) -> Self {
+        let units_per_em = font.units_per_em().expect("units-per-em not found") as f32;
+        let scale = font_size as f32 / units_per_em;
+        let height = font_size as f32 * scale;
+
+        Self {
+            font,
+            scale,
+            precision,
+            height: height as u32,
+            path_buffer: String::default(),
+        }
+    }
+}
+
+impl<'a> Font for TrueTypeFont<'a> {
+    fn height(&self) -> u32 {
+        self.height
+    }
+
+    fn render_glyph<'b>(&'b mut self, c: char) -> Option<FontGlyph<'b>> {
+        self.path_buffer.clear();
+        let mut sink = PathSink::new(self.scale, self.precision, &mut self.path_buffer);
+        if let Some(glyph_id) = self.font.glyph_index(c) {
+            let hor_advance = self.font.glyph_hor_advance(glyph_id).unwrap();
+            let hor_advance = hor_advance as f32 * self.scale;
+            let path = match self.font.outline_glyph(glyph_id, &mut sink) {
+                Some(_) => Some(self.path_buffer.as_str()),
+                None => None,
+            };
+            return Some(FontGlyph {
+                path,
+                hor_advance,
+            });
+        }
+        None
+    }
+
+    fn scale(&self) -> f32 {
+        self.scale
+    }
+
+    fn precision(&self) -> u8 {
+        self.precision
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
 struct PathSink<'a> {
     scale: f32,
     last: Point<f32>,
-    path: &'a mut Vec<u8>,
-    i32_buf: [u8; 16],
+    path: &'a mut String,
     f32_buf: ryu::Buffer,
-    integer_path: bool,
+    precision: u8,
+    precision_mod: f32,
 }
 
 impl<'a> PathSink<'a> {
-    fn new(scale: f32, integer_path: bool, path: &'a mut Vec<u8>) -> Self {
+    fn new(scale: f32, precision: u8, path: &'a mut String) -> Self {
+        let precision_mod = precision as f32 * 10.0;
         Self {
             path,
             scale,
-            integer_path,
+            precision,
+            precision_mod,
             f32_buf: Default::default(),
-            i32_buf: Default::default(),
             last: Point { x: 0.0, y: 0.0 },
         }
     }
 
     #[inline]
     fn write_str(&mut self, s: &str) {
-        self.path.extend_from_slice(s.as_bytes());
+        self.path.push_str(s);
     }
 
     #[inline]
@@ -94,17 +237,18 @@ impl<'a> PathSink<'a> {
     }
 
     #[inline]
-    fn write_f32(&mut self, v: f32, first: bool) {
+    fn write_f32(&mut self, mut v: f32, first: bool) {
+        v = (v * self.precision_mod).round() / self.precision_mod;
         if !first && v >= 0.0 {
             self.write_str(" ");
         }
         let vi32 = v as i32;
-        let bytes = if self.integer_path || v == vi32 as f32 {
-            vi32.numtoa(10, &mut self.i32_buf[..])
+        if self.precision == 0 || v == vi32 as f32 {
+            itoa::fmt(&mut self.path, vi32).ok();
         } else {
-            self.f32_buf.format_finite(v).as_bytes()
-        };
-        self.path.extend_from_slice(bytes)
+            let s = self.f32_buf.format_finite(v);
+            self.path.push_str(s)
+        }
     }
 
     #[inline]
@@ -165,88 +309,32 @@ impl<'a> OutlineBuilder for PathSink<'a> {
     }
 }
 
-pub trait TextRenderer {
-    fn x_height(&self) -> u32;
+///////////////////////////////////////////////////////////////////////////////
 
-    fn render(&mut self, text: &str, path: &mut Vec<u8>, origin: Point) -> Option<u32>;
-}
+pub(crate) fn render_text_path<T: Font>(
+    font: &mut T,
+    origin: Point,
+    text: &str,
+    path_buffer: &mut String,
+) -> u32 {
+    let mut sink = PathSink::new(font.scale(), font.precision(), path_buffer);
 
-struct CacheEntry {
-    c: char,
-    hor_adv: f32,
-    path: Vec<u8>,
-}
+    let mut next_glyph_origin = Point {
+        x: origin.x as f32,
+        y: origin.y as f32,
+    };
 
-pub struct ScaledFont<'a> {
-    scale: f32,
-    integer_path: bool,
-    font: &'a Font<'a>,
-    cache: LRUCache<[Entry<CacheEntry>; 256]>,
-}
-
-impl<'a> ScaledFont<'a> {
-    pub fn new(font: &'a Font<'a>, scale: f32) -> Self {
-        Self {
-            scale,
-            font,
-            integer_path: true,
-            cache: LRUCache::default(),
+    for c in text.chars() {
+        // TODO: can't render?
+        if let Some(entry) = font.render_glyph(c) {
+            if let Some(path) = entry.path {
+                sink.set_last(0.0, 0.0);
+                sink.write_move_to_abs(next_glyph_origin);
+                sink.write_str(path);
+            }
+            next_glyph_origin.x += entry.hor_advance;
         }
     }
 
-    pub fn x_height(&self) -> u32 {
-        // TODO: bad default?
-        let x_height = self.font.x_height().unwrap_or(self.font.height());
-        (x_height as f32 * self.scale) as u32
-    }
-
-    pub fn float_path(mut self) -> Self {
-        self.integer_path = false;
-        self
-    }
-}
-
-impl<'a> TextRenderer for ScaledFont<'a> {
-    fn x_height(&self) -> u32 {
-        ScaledFont::x_height(self)
-    }
-
-    fn render(&mut self, text: &str, path: &mut Vec<u8>, origin: Point) -> Option<u32> {
-        let mut sink = PathSink::new(self.scale, self.integer_path, path);
-        let mut next_glyph_origin = Point {
-            x: origin.x as f32,
-            y: origin.y as f32,
-        };
-        for c in text.chars() {
-            sink.set_last(0.0, 0.0);
-            sink.write_move_to_abs(next_glyph_origin);
-
-            if let Some(entry) = self.cache.find(|entry| entry.c == c) {
-                sink.path.extend_from_slice(&entry.path[..]);
-                next_glyph_origin.x += entry.hor_adv;
-                continue;
-            }
-
-            if let Some(glyph_id) = self.font.glyph_index(c) {
-                let start = sink.path.len();
-                if let Some(_) = self.font.outline_glyph(glyph_id, &mut sink) {
-                    let hor_adv = self.font.glyph_hor_advance(glyph_id).unwrap();
-                    let hor_adv = hor_adv as f32 * self.scale;
-                    next_glyph_origin.x += hor_adv;
-                    let cache_entry = CacheEntry {
-                        c,
-                        path: sink.path[start..].to_vec(),
-                        hor_adv,
-                    };
-                    self.cache.insert(cache_entry);
-                } else {
-                    return None;
-                }
-            } else {
-                return None;
-            }
-        }
-
-        Some(next_glyph_origin.x as u32 - origin.x)
-    }
+    next_glyph_origin.x as u32 - origin.x
 }

@@ -1,21 +1,21 @@
 use badgen;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
-fn criterion_benchmark(c: &mut Criterion) {
+fn benchmarks(c: &mut Criterion) {
     c.bench_function("classic", |b| {
-        let font = badgen::raleway_reg_font();
-        let mut renderer = badgen::ScaledFont::new(&font, 1.0);
-        let mut scratch = Vec::with_capacity(4098);
+        let font = badgen::notosans_font();
+        let mut font = badgen::font(&font);
+        let mut scratch = String::with_capacity(4098);
         let mut out = String::with_capacity(4098);
 
         b.iter(|| {
             out.clear();
-            badgen::badge_with_font(
+            badgen::write_badge_with_font(
                 &mut out,
                 &badgen::Style::classic(),
                 black_box("world"),
                 black_box(Some("hello")),
-                &mut renderer,
+                &mut font,
                 &mut scratch,
             )
             .unwrap();
@@ -23,5 +23,5 @@ fn criterion_benchmark(c: &mut Criterion) {
     });
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(benches, benchmarks);
 criterion_main!(benches);

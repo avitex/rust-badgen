@@ -17,8 +17,8 @@ pretty = []
 
 [dependencies]
 ryu = "1"
-uluru = "0.4"
-numtoa = "0.2"
+itoa = "0.4"
+uluru = { git = "https://github.com/avitex/uluru" }
 svgtypes = "0.5"
 ttf-parser = "0.6"
 
