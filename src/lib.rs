@@ -1,10 +1,44 @@
-//!
-//! # Design
-//!
+//! Rust SVG badge generator with font path rendering.
+//! 
 //! ```text
 //! +-------+--------+
 //! | LABEL | STATUS |
 //! +-------+--------+
+//! ```
+//! 
+//! # Basic usage
+//! 
+//! ```rust
+//! let badge = badgen::badge(
+//!     &badgen::Style::classic(),
+//!     "status",
+//!     Some("label"),
+//! ).unwrap();
+//! 
+//! println!("{}", badge);
+//! ```
+//! 
+//! # Performance usage
+//! 
+//! Note, given this example, you would clear `out` on every render.
+//! 
+//! ```rust
+//! let font = badgen::notosans_font();
+//! let mut font = badgen::font(&font);
+//! let mut scratch = String::with_capacity(4098);
+//! let mut out = String::with_capacity(4098);
+//! 
+//! badgen::write_badge_with_font(
+//!     &mut out,
+//!     &badgen::Style::classic(),
+//!     "world",
+//!     Some("hello"),
+//!     &mut font,
+//!     &mut scratch,
+//! )
+//! .unwrap();
+//! 
+//! println!("{}", out);
 //! ```
 
 #![no_std]
