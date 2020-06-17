@@ -20,15 +20,16 @@
 
 extern crate alloc;
 
+mod font;
 mod style;
 mod svg;
-mod text;
+mod util;
 
 use alloc::string::String;
 use core::{fmt, str};
 
+pub use self::font::*;
 pub use self::style::*;
-pub use self::text::*;
 
 use self::svg::SvgWrite;
 
@@ -44,7 +45,6 @@ const VIEWBOX_HEIGHT: u32 = 20 * VIEWBOX_SCALE;
 const SIDE_MARGIN: u32 = 5 * VIEWBOX_SCALE;
 const MIDDLE_MARGIN: u32 = 11 * VIEWBOX_SCALE;
 const LINE_HEIGHT: u32 = 11 * VIEWBOX_SCALE;
-const TEXT_SHADOW_OFFSET: u32 = 1 * VIEWBOX_SCALE;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point<T = u32> {
@@ -155,27 +155,29 @@ where
 
     let mut svg = SvgWrite::start(w)?;
 
-    svg.attr("width", image_size.x)?
-        .attr("height", image_size.y)?
-        .attr(
-            "viewBox",
-            format_args!("0 0 {} {}", viewbox_size.x, viewbox_size.y),
-        )?
-        .attr("xmlns", "http://www.w3.org/2000/svg")?;
+    svg.attr_int("width", image_size.x)?
+        .attr_int("height", image_size.y)?
+        .attr_fn("viewBox", |mut w| {
+            w.write_str("0 0 ")?;
+            write_int(&mut w, viewbox_size.x)?;
+            w.write_char(' ')?;
+            write_int(&mut w, viewbox_size.y)
+        })?
+        .attr_str("xmlns", "http://www.w3.org/2000/svg")?;
 
     ///////////////////////////////////////////////////////////////////////////
 
     svg.open("defs")?;
 
     svg.open("path")?
-        .attr("id", STATUS_PATH_ID)?
-        .attr("d", status_text_path)?
+        .attr_str("id", STATUS_PATH_ID)?
+        .attr_str("d", status_text_path)?
         .close_inline()?;
 
     if let Some(label_text_path) = label_text_path {
         svg.open("path")?
-            .attr("id", LABEL_PATH_ID)?
-            .attr("d", label_text_path)?
+            .attr_str("id", LABEL_PATH_ID)?
+            .attr_str("d", label_text_path)?
             .close_inline()?;
     }
 
@@ -185,20 +187,20 @@ where
 
     let requires_mask = if let Some(ref gradient) = style.gradient {
         svg.open("linearGradient")?
-            .attr("id", GRADIENT_ID)?
-            .attr("x2", "0")?
-            .attr("y2", "100%")?
+            .attr_str("id", GRADIENT_ID)?
+            .attr_str("x2", "0")?
+            .attr_str("y2", "100%")?
             .open("stop")?
-            .attr("offset", "0")?
-            .attr("stop-opacity", gradient.opacity)?
-            .attr("stop-color", gradient.start)?
+            .attr_str("offset", "0")?
+            .attr_fn("stop-opacity", |w| write_opacity(w, gradient.opacity))?
+            .attr_fn("stop-color", |w| write_color(w, gradient.start))?
             .close_inline()?
             .open("stop")?
-            .attr("offset", "1")?
-            .attr("stop-opacity", gradient.opacity)?;
+            .attr_str("offset", "1")?
+            .attr_fn("stop-opacity", |w| write_opacity(w, gradient.opacity))?;
 
         if let Some(end) = gradient.end {
-            svg.attr("stop-color", end)?;
+            svg.attr_fn("stop-color", |w| write_color(w, end))?;
         }
 
         svg.close_inline()?.close("linearGradient")?;
@@ -210,21 +212,21 @@ where
     ///////////////////////////////////////////////////////////////////////////
 
     if requires_mask {
-        svg.open("mask")?.attr("id", MASK_ID)?;
+        svg.open("mask")?.attr_str("id", MASK_ID)?;
 
         svg.open("rect")?
-            .attr("width", viewbox_size.x)?
-            .attr("height", viewbox_size.y)?
-            .attr("fill", "#fff")?;
+            .attr_int("width", viewbox_size.x)?
+            .attr_int("height", viewbox_size.y)?
+            .attr_str("fill", "#fff")?;
 
         if style.border_radius > 0 {
-            svg.attr("rx", style.border_radius * 10)?;
+            svg.attr_int("rx", style.border_radius * VIEWBOX_SCALE)?;
         }
 
         svg.close_inline()?
             .close("mask")?
             .open("g")?
-            .attr("mask", format_args!("url(#{})", MASK_ID))?;
+            .attr_fn("mask", |w| write_id_url(w, MASK_ID))?;
     }
 
     ///////////////////////////////////////////////////////////////////////////
@@ -237,7 +239,10 @@ where
                 x: label_rect_width,
                 y: VIEWBOX_HEIGHT,
             },
-            style.label_background,
+            style
+                .label_background
+                .map(Fill::Color)
+                .unwrap_or(Fill::None),
         )?;
     }
 
@@ -251,7 +256,7 @@ where
             x: status_rect_width,
             y: VIEWBOX_HEIGHT,
         },
-        Some(style.background),
+        Fill::Color(style.background),
     )?;
 
     if style.gradient.is_some() {
@@ -259,7 +264,7 @@ where
             &mut svg,
             VIEWBOX_ORIGIN,
             viewbox_size,
-            Some(format_args!("url(#{})", GRADIENT_ID)),
+            Fill::Id(GRADIENT_ID),
         )?;
     }
 
@@ -278,6 +283,7 @@ where
             LABEL_PATH_ID,
             style.text_shadow_color,
             style.text_shadow_opacity,
+            style.text_shadow_offset,
         )?;
     }
 
@@ -288,11 +294,20 @@ where
         STATUS_PATH_ID,
         style.text_shadow_color,
         style.text_shadow_opacity,
+        style.text_shadow_offset,
     )?;
 
     ///////////////////////////////////////////////////////////////////////////
 
     svg.finish().map(drop)
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+enum Fill<'a> {
+    None,
+    Id(&'a str),
+    Color(Color<'a>),
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -305,51 +320,107 @@ fn write_text_path_ref<W>(
     text_path_id: &str,
     text_shadow_color: Color<'_>,
     text_shadow_opacity: Opacity<'_>,
+    text_shadow_offset: u32,
 ) -> fmt::Result
 where
     W: fmt::Write,
 {
     svg.open("use")?
-        .attr("href", format_args!("#{}", text_path_id))?
-        .attr("fill", text_shadow_color)?
-        .attr("opacity", text_shadow_opacity)?
-        .attr(
-            "transform",
-            format_args!("translate({0},{0})", TEXT_SHADOW_OFFSET),
-        )?
+        .attr_fn("href", |w| write_id(w, text_path_id))?
+        .attr_fn("fill", |w| write_color(w, text_shadow_color))?
+        .attr_fn("opacity", |w| write_opacity(w, text_shadow_opacity))?
+        .attr_fn("transform", |mut w| {
+            w.write_str("translate(")?;
+            write_int(&mut w, text_shadow_offset * VIEWBOX_SCALE)?;
+            w.write_char(',')?;
+            write_int(&mut w, text_shadow_offset * VIEWBOX_SCALE)?;
+            w.write_char(')')
+        })?
         .close_inline()?;
 
     svg.open("use")?
-        .attr("href", format_args!("#{}", text_path_id))?
-        .attr("fill", text_color)?
+        .attr_fn("href", |w| write_id(w, text_path_id))?
+        .attr_fn("fill", |w| write_color(w, text_color))?
         .close_inline()?;
 
     Ok(())
 }
 
-fn write_rect_path<W, F>(
+fn write_rect_path<W>(
     svg: &mut SvgWrite<W>,
     origin: Point,
     size: Point,
-    fill: Option<F>,
+    fill: Fill<'_>,
 ) -> fmt::Result
 where
     W: fmt::Write,
-    F: fmt::Display,
 {
-    svg.open("path")?.attr(
-        "d",
-        format_args!(
-            "M{origin_x} {origin_y}h{size_x}v{size_y}H{origin_x}z",
-            origin_x = origin.x,
-            origin_y = origin.y,
-            size_x = size.x,
-            size_y = size.y,
-        ),
-    )?;
-    if let Some(fill) = fill {
-        svg.attr("fill", fill)?;
+    svg.open("path")?.attr_fn("d", |mut w| {
+        w.write_char('M')?;
+        write_int(&mut w, origin.x)?;
+        w.write_char(' ')?;
+        write_int(&mut w, origin.y)?;
+        w.write_char('h')?;
+        write_int(&mut w, size.x)?;
+        w.write_char('v')?;
+        write_int(&mut w, size.y)?;
+        w.write_char('H')?;
+        write_int(&mut w, origin.x)?;
+        w.write_char('z')
+    })?;
+    match fill {
+        Fill::None => {}
+        Fill::Color(c) => {
+            svg.attr_fn("fill", |w| write_color(w, c))?;
+        }
+        Fill::Id(id) => {
+            svg.attr_fn("fill", |w| write_id_url(w, id))?;
+        }
     }
+
     svg.close_inline()?;
     Ok(())
+}
+
+#[inline]
+fn write_int<W>(w: W, value: impl itoa::Integer) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    itoa::fmt(w, value)
+}
+
+#[inline]
+fn write_id<W>(mut w: W, id: &str) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    w.write_char('#')?;
+    w.write_str(id)
+}
+
+#[inline]
+fn write_color<W>(w: W, color: Color<'_>) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    color.fmt(w)
+}
+
+#[inline]
+fn write_opacity<W>(w: W, opacity: Opacity<'_>) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    opacity.fmt(w)
+}
+
+#[inline]
+fn write_id_url<W>(mut w: W, id: &str) -> fmt::Result
+where
+    W: fmt::Write,
+{
+    w.write_str("url(#")?;
+    w.write_str(id)?;
+    w.write_char(')')
 }

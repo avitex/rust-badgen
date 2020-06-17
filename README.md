@@ -25,7 +25,7 @@ println!("{}", badge);
 
 **Flat**
 
-![Classic](./data/generated/flat.svg)
+![Flat](./data/generated/flat.svg)
 
 ```rust
 let badge = badgen::badge(&badgen::Style::flat(), "4.2 KB", Some("minzipped size")).unwrap();
@@ -37,20 +37,19 @@ println!("{}", badge);
 Benchmarks were run on an AMD Ryzen 9 3950X on the 17th of Jun 20.
 
 ```text
-classic                 time:   [4.4839 us 4.4861 us 4.4883 us]                     
-Found 8 outliers among 100 measurements (8.00%)
-  5 (5.00%) high mild
-  3 (3.00%) high severe
-
-flat                    time:   [2.9747 us 2.9781 us 2.9813 us]                  
-Found 5 outliers among 100 measurements (5.00%)
+classic                 time:   [1.8844 us 1.8888 us 1.8933 us]                     
+Found 4 outliers among 100 measurements (4.00%)
   2 (2.00%) low mild
-  1 (1.00%) high mild
-  2 (2.00%) high severe
+  2 (2.00%) high mild
 
-default-slow            time:   [13.276 us 13.286 us 13.297 us]                          
-Found 3 outliers among 100 measurements (3.00%)
-  3 (3.00%) high mild
+flat                    time:   [1.3516 us 1.3536 us 1.3556 us]                  
+Found 2 outliers among 100 measurements (2.00%)
+  1 (1.00%) low mild
+  1 (1.00%) high mild
+
+default-slow            time:   [11.833 us 11.847 us 11.863 us]                          
+Found 2 outliers among 100 measurements (2.00%)
+  2 (2.00%) low mild
 ```
 
 ## Credits

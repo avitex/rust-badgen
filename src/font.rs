@@ -1,5 +1,4 @@
 use alloc::string::String;
-use core::fmt;
 
 use ttf_parser::{Font as TrueTypeFontInner, OutlineBuilder};
 use uluru::{Entry, LRUCache};
@@ -21,40 +20,6 @@ pub fn font_licenses() -> &'static [&'static str] {
         #[cfg(feature = "font-notosans")]
         NOTOSANS_LICENSE,
     ]
-}
-
-/// Escapes bad characters for displaying within XML/HTML.
-#[derive(Debug)]
-pub struct Escape<'a>(pub &'a str);
-
-#[inline]
-fn escape_char(c: u8) -> Option<&'static str> {
-    match c {
-        b'&' => Some("&amp;"),
-        b'<' => Some("&lt"),
-        b'>' => Some("&gt"),
-        b'"' => Some("&quot"),
-        b'\'' => Some("&#39"),
-        _ => None,
-    }
-}
-
-impl<'a> fmt::Display for Escape<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let s = self.0;
-        let mut last = 0;
-        for (i, c) in s.bytes().enumerate() {
-            if let Some(escaped) = escape_char(c) {
-                f.write_str(&s[last..i])?;
-                f.write_str(escaped)?;
-                last = i + 1;
-            }
-        }
-        if last < s.len() {
-            f.write_str(&s[last..])?;
-        }
-        Ok(())
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////

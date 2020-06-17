@@ -21,6 +21,7 @@ pub struct Style<'a> {
     // pub text_overlay: bool,
     pub text_shadow_color: Color<'a>,
     pub text_shadow_opacity: Opacity<'a>,
+    pub text_shadow_offset: u32,
     pub label_background: Option<Color<'a>>,
     pub label_text_color: Option<Color<'a>>,
     // TODO
@@ -34,12 +35,13 @@ impl<'a> Style<'a> {
     pub const fn classic() -> Self {
         Self {
             height: 20,
-            border_radius: 30,
+            border_radius: 3,
             background: Color::Blue,
             // text_overlay: false,
             text_color: Color::Custom("fff"),
             text_shadow_color: Color::Custom("000"),
             text_shadow_opacity: Opacity::raw(".25"),
+            text_shadow_offset: 1,
             label_background: Some(Color::Custom("555")),
             label_text_color: None,
             // icon_path: None,
@@ -140,11 +142,14 @@ impl<'a> Color<'a> {
             Self::Custom(s) => s,
         }
     }
-}
 
-impl<'a> fmt::Display for Color<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "#{}", self.as_str())
+    #[inline]
+    pub fn fmt<W>(&self, mut w: W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        w.write_char('#')?;
+        w.write_str(self.as_str())
     }
 }
 
@@ -199,11 +204,13 @@ impl<'a> Opacity<'a> {
     pub fn as_str(&'a self) -> &str {
         self.0
     }
-}
 
-impl<'a> fmt::Display for Opacity<'a> {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+    #[inline]
+    pub fn fmt<W>(&self, mut w: W) -> fmt::Result
+    where
+        W: fmt::Write,
+    {
+        w.write_str(self.as_str())
     }
 }
 

@@ -1,5 +1,7 @@
 use core::fmt;
 
+use crate::util::Escape;
+
 pub struct SvgWrite<W> {
     w: W,
     open: bool,
@@ -26,7 +28,8 @@ where
         self.end_if_open()?;
         #[cfg(feature = "pretty")]
         self.write_indent()?;
-        write!(self.w, "<{}", name)?;
+        self.w.write_str("<")?;
+        self.w.write_str(name)?;
         self.open = true;
         Ok(self)
     }
@@ -38,26 +41,53 @@ where
             self.indent_delta(-1);
             self.write_indent()?;
         }
-        write!(self.w, "</{}>", name)?;
+        self.w.write_str("</")?;
+        self.w.write_str(name)?;
+        self.w.write_str(">")?;
         #[cfg(feature = "pretty")]
-        write!(self.w, "\n")?;
+        self.w.write_char('\n')?;
         Ok(self)
     }
 
     pub fn close_inline(&mut self) -> Result<&mut Self, fmt::Error> {
         assert!(self.open);
         self.open = false;
-        write!(self.w, "/>")?;
+        self.w.write_str("/>")?;
         #[cfg(feature = "pretty")]
-        write!(self.w, "\n")?;
+        self.w.write_char('\n')?;
         Ok(self)
     }
 
-    pub fn attr<V>(&mut self, name: &str, value: V) -> Result<&mut Self, fmt::Error>
+    #[inline]
+    pub fn attr_fn<F>(&mut self, name: &str, value_fn: F) -> Result<&mut Self, fmt::Error>
     where
-        V: fmt::Display,
+        F: FnOnce(&mut W) -> fmt::Result,
     {
-        write!(self.w, r#" {}="{}""#, name, value)?;
+        self.w.write_char(' ')?;
+        self.w.write_str(name)?;
+        self.w.write_str(r#"=""#)?;
+        value_fn(&mut self.w)?;
+        self.w.write_char('"')?;
+        Ok(self)
+    }
+
+    pub fn attr_str(&mut self, name: &str, value: &str) -> Result<&mut Self, fmt::Error> {
+        self.attr_fn(name, |w| w.write_str(value))?;
+        Ok(self)
+    }
+
+    pub fn attr_int<V>(&mut self, name: &str, value: V) -> Result<&mut Self, fmt::Error>
+    where
+        V: itoa::Integer,
+    {
+        self.attr_fn(name, |w| itoa::fmt(w, value))?;
+        Ok(self)
+    }
+
+    #[allow(dead_code)]
+    pub fn write_value(&mut self, value: &str) -> Result<&mut Self, fmt::Error> {
+        Escape(value).fmt(&mut self.w)?;
+        self.end_if_open()?;
         Ok(self)
     }
 
@@ -75,18 +105,18 @@ where
     #[inline]
     fn write_indent(&mut self) -> fmt::Result {
         for _ in 0..self.level {
-            write!(self.w, "\t")?;
+            self.w.write_char('\t')?;
         }
         Ok(())
     }
 
     fn end_if_open(&mut self) -> fmt::Result {
         if self.open {
-            write!(self.w, ">")?;
+            self.w.write_char('>')?;
             #[cfg(feature = "pretty")]
             {
                 self.indent_delta(1);
-                write!(self.w, "\n")?;
+                self.w.write_char('\n')?;
             }
             self.open = false;
         }
