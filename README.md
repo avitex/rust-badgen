@@ -9,18 +9,25 @@ Documentation hosted on [docs.rs](https://docs.rs/badgen).
 
 ```toml
 [dependencies]
-badgen = "0.1.0"
+badgen = "0.1"
 ```
 
-## Example
+## Examples
+
+**Classic**
+
+![Classic](./data/generated/classic.svg)
 
 ```rust
-// Classic style
-let badge = badgen::badge(&badgen::Style::classic(), "12", Some("downloads")).unwrap();
-
+let badge = badgen::badge(&badgen::Style::classic(), "4.2 KB", Some("minzipped size")).unwrap();
 println!("{}", badge);
+```
 
-// Flat style
-let badge = badgen::badge(&badgen::Style::flat(), "12", Some("downloads")).unwrap();
+**Flat**
+
+![Classic](./data/generated/flat.svg)
+
+```rust
+let badge = badgen::badge(&badgen::Style::flat(), "4.2 KB", Some("minzipped size")).unwrap();
 println!("{}", badge);
 ```
