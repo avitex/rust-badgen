@@ -11,27 +11,43 @@ pub(crate) const GREY_COLOR_HEX: &str = "999";
 pub(crate) const CYAN_COLOR_HEX: &str = "1BC";
 pub(crate) const BLACK_COLOR_HEX: &str = "2A2A2A";
 
+/// A badge style.
 #[derive(Debug, Clone)]
 pub struct Style<'a> {
+    /// The height of the badge.
     pub height: u32,
+    /// The border radius of the badge.
     pub border_radius: u32,
+    /// The background color of the badge.
+    ///
+    /// This is specific to the status.
     pub background: Color<'a>,
+    /// The text color of the badge.
     pub text_color: Color<'a>,
     // TODO
     // pub text_overlay: bool,
+    /// The text shadow color of the badge.
     pub text_shadow_color: Color<'a>,
+    /// The text shadow opacity of the badge.
     pub text_shadow_opacity: Opacity<'a>,
+    /// The text shadow offset of the badge.
     pub text_shadow_offset: u32,
+    /// The label background color of the badge.
     pub label_background: Option<Color<'a>>,
+    /// The label text color of the badge.
+    ///
+    /// If not `None`, defaults to `text_color`.
     pub label_text_color: Option<Color<'a>>,
     // TODO
     // pub icon_path: Option<&'a str>,
     // pub icon_width: u32,
+    /// The background gradient of the badge.
     pub gradient: Option<Gradient<'a>>,
     _seal: (),
 }
 
 impl<'a> Style<'a> {
+    /// A classic badge style.
     pub const fn classic() -> Self {
         Self {
             height: 20,
@@ -55,6 +71,7 @@ impl<'a> Style<'a> {
         }
     }
 
+    /// A flat badge style.
     pub const fn flat() -> Self {
         Self {
             gradient: None,
@@ -143,6 +160,7 @@ impl<'a> Color<'a> {
         }
     }
 
+    /// Writes the color to a [`fmt::Write`].
     #[inline]
     pub fn fmt<W>(&self, mut w: W) -> fmt::Result
     where
@@ -153,14 +171,17 @@ impl<'a> Color<'a> {
     }
 }
 
+/// Wrapper around a string opacity value.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct Opacity<'a>(&'a str);
 
 impl<'a> Opacity<'a> {
+    /// A raw unchecked opacity value.
     pub const fn raw(s: &'a str) -> Self {
         Self(s)
     }
 
+    /// Parse an opacity value.
     pub fn parse(s: &'a str) -> Option<Self> {
         let sb = s.as_bytes();
         match sb.len() {
@@ -190,21 +211,25 @@ impl<'a> Opacity<'a> {
         }
     }
 
+    /// Returns `true` if the value is completely opaque.
     #[inline]
     pub fn is_opaque(&self) -> bool {
         self.0 == "1"
     }
 
+    /// Returns `true` if the value is completely transparent.
     #[inline]
     pub fn is_transparent(&self) -> bool {
         self.0 == "0"
     }
 
+    /// Returns the opacity value.
     #[inline]
     pub fn as_str(&'a self) -> &str {
         self.0
     }
 
+    /// Writes the opacity to a [`fmt::Write`].
     #[inline]
     pub fn fmt<W>(&self, mut w: W) -> fmt::Result
     where
@@ -214,10 +239,14 @@ impl<'a> Opacity<'a> {
     }
 }
 
+/// A two color gradient value.
 #[derive(Debug, Clone)]
 pub struct Gradient<'a> {
+    /// The start color.
     pub start: Color<'a>,
+    /// The end color.
     pub end: Option<Color<'a>>,
+    /// The opacity of the gradient.
     pub opacity: Opacity<'a>,
 }
 

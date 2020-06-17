@@ -9,14 +9,14 @@
 
 #![no_std]
 #![doc(html_root_url = "https://docs.rs/badgen/0.1.0")]
-// #![deny(
-//     warnings,
-//     missing_docs,
-//     missing_debug_implementations,
-//     intra_doc_link_resolution_failure,
-//     rust_2018_idioms,
-//     unreachable_pub
-// )]
+#![deny(
+    warnings,
+    missing_docs,
+    missing_debug_implementations,
+    intra_doc_link_resolution_failure,
+    rust_2018_idioms,
+    unreachable_pub
+)]
 
 extern crate alloc;
 
@@ -46,18 +46,57 @@ const SIDE_MARGIN: u32 = 5 * VIEWBOX_SCALE;
 const MIDDLE_MARGIN: u32 = 11 * VIEWBOX_SCALE;
 const LINE_HEIGHT: u32 = 11 * VIEWBOX_SCALE;
 
+/// An `x` and `y` coordinate.
 #[derive(Debug, Clone, Copy)]
 pub struct Point<T = u32> {
+    /// The `x` component.
     pub x: T,
+    /// The `y` component.
     pub y: T,
 }
 
+/// Prepares a cached True Type Font for use in generating badges with integer
+/// SVG paths.
+pub fn font<'a>(font: &'a ttf_parser::Font<'a>) -> CachedFont<TrueTypeFont<'a>> {
+    font_with_precision(font, 0)
+}
+
+/// Prepares a cached True Type Font for use in generating badges with a given
+/// precision.
+pub fn font_with_precision<'a>(
+    font: &'a ttf_parser::Font<'a>,
+    precision: u8,
+) -> CachedFont<TrueTypeFont<'a>> {
+    CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT as f32, precision))
+}
+
+/// Generate an SVG badge given a style, status and optional label.
+///
+/// Uses the default font provided by this library.
+///
+/// # Example
+///
+/// ```rust
+/// let badge = badgen::badge(
+///     &badgen::Style::classic(),
+///     "status",
+///     Some("label"),
+/// ).unwrap();
+///
+/// println!("{}", badge);
+/// ```
+#[cfg(feature = "font-notosans")]
 pub fn badge(style: &Style<'_>, status: &str, label: Option<&str>) -> Result<String, fmt::Error> {
     let mut out = String::with_capacity(8192);
     write_badge(&mut out, style, status, label)?;
     Ok(out)
 }
 
+/// Writes an SVG badge to a [`fmt::Write`] given a style, status and optional
+/// label.
+///
+/// Uses the default font provided by this library.
+#[cfg(feature = "font-notosans")]
 pub fn write_badge<W>(
     w: &mut W,
     style: &Style<'_>,
@@ -73,17 +112,12 @@ where
     write_badge_with_font(w, style, status, label, &mut font, &mut scratch)
 }
 
-pub fn font<'a>(font: &'a ttf_parser::Font<'a>) -> CachedFont<TrueTypeFont<'a>> {
-    font_with_precision(font, 0)
-}
-
-pub fn font_with_precision<'a>(
-    font: &'a ttf_parser::Font<'a>,
-    precision: u8,
-) -> CachedFont<TrueTypeFont<'a>> {
-    CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT as f32, precision))
-}
-
+/// Writes an SVG badge to a [`fmt::Write`] given a style, status, optional
+/// label, font and scratch space.
+///
+/// The scratch space is used for minimal to zero allocations with repeated use.
+///
+/// Prepare fonts for this function with `font` or `font_with_precision`.
 pub fn write_badge_with_font<W, F>(
     w: &mut W,
     style: &Style<'_>,

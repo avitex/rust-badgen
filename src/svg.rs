@@ -2,7 +2,7 @@ use core::fmt;
 
 use crate::util::Escape;
 
-pub struct SvgWrite<W> {
+pub(crate) struct SvgWrite<W> {
     w: W,
     open: bool,
     #[cfg(feature = "pretty")]
@@ -13,7 +13,7 @@ impl<W> SvgWrite<W>
 where
     W: fmt::Write,
 {
-    pub fn start(w: W) -> Result<Self, fmt::Error> {
+    pub(crate) fn start(w: W) -> Result<Self, fmt::Error> {
         let mut this = Self {
             w,
             open: false,
@@ -24,7 +24,7 @@ where
         Ok(this)
     }
 
-    pub fn open(&mut self, name: &str) -> Result<&mut Self, fmt::Error> {
+    pub(crate) fn open(&mut self, name: &str) -> Result<&mut Self, fmt::Error> {
         self.end_if_open()?;
         #[cfg(feature = "pretty")]
         self.write_indent()?;
@@ -34,7 +34,7 @@ where
         Ok(self)
     }
 
-    pub fn close(&mut self, name: &str) -> Result<&mut Self, fmt::Error> {
+    pub(crate) fn close(&mut self, name: &str) -> Result<&mut Self, fmt::Error> {
         self.end_if_open()?;
         #[cfg(feature = "pretty")]
         {
@@ -49,7 +49,7 @@ where
         Ok(self)
     }
 
-    pub fn close_inline(&mut self) -> Result<&mut Self, fmt::Error> {
+    pub(crate) fn close_inline(&mut self) -> Result<&mut Self, fmt::Error> {
         assert!(self.open);
         self.open = false;
         self.w.write_str("/>")?;
@@ -59,7 +59,7 @@ where
     }
 
     #[inline]
-    pub fn attr_fn<F>(&mut self, name: &str, value_fn: F) -> Result<&mut Self, fmt::Error>
+    pub(crate) fn attr_fn<F>(&mut self, name: &str, value_fn: F) -> Result<&mut Self, fmt::Error>
     where
         F: FnOnce(&mut W) -> fmt::Result,
     {
@@ -71,12 +71,12 @@ where
         Ok(self)
     }
 
-    pub fn attr_str(&mut self, name: &str, value: &str) -> Result<&mut Self, fmt::Error> {
+    pub(crate) fn attr_str(&mut self, name: &str, value: &str) -> Result<&mut Self, fmt::Error> {
         self.attr_fn(name, |w| w.write_str(value))?;
         Ok(self)
     }
 
-    pub fn attr_int<V>(&mut self, name: &str, value: V) -> Result<&mut Self, fmt::Error>
+    pub(crate) fn attr_int<V>(&mut self, name: &str, value: V) -> Result<&mut Self, fmt::Error>
     where
         V: itoa::Integer,
     {
@@ -85,13 +85,13 @@ where
     }
 
     #[allow(dead_code)]
-    pub fn write_value(&mut self, value: &str) -> Result<&mut Self, fmt::Error> {
+    pub(crate) fn write_value(&mut self, value: &str) -> Result<&mut Self, fmt::Error> {
         Escape(value).fmt(&mut self.w)?;
         self.end_if_open()?;
         Ok(self)
     }
 
-    pub fn finish(mut self) -> Result<W, fmt::Error> {
+    pub(crate) fn finish(mut self) -> Result<W, fmt::Error> {
         self.close("svg")?;
         Ok(self.w)
     }

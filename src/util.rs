@@ -2,7 +2,7 @@ use core::fmt;
 
 /// Escapes bad characters for displaying within XML/HTML.
 #[derive(Debug)]
-pub struct Escape<'a>(pub &'a str);
+pub(crate) struct Escape<'a>(pub(crate) &'a str);
 
 #[inline]
 fn escape_char(c: u8) -> Option<&'static str> {
@@ -17,7 +17,7 @@ fn escape_char(c: u8) -> Option<&'static str> {
 }
 
 impl<'a> Escape<'a> {
-    pub fn fmt<W>(&self, mut w: W) -> fmt::Result
+    pub(crate) fn fmt<W>(&self, mut w: W) -> fmt::Result
     where
         W: fmt::Write,
     {

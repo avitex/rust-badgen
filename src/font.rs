@@ -10,11 +10,13 @@ const NOTOSANS_LICENSE: &str = include_str!("../data/fonts/notosans/LICENSE.txt"
 #[cfg(feature = "font-notosans")]
 const NOTOSANS_DATA: &[u8] = include_bytes!("../data/fonts/notosans/NotoSans-Regular.ttf");
 
+/// Parsed NotoSans font.
 #[cfg(feature = "font-notosans")]
 pub fn notosans_font() -> ttf_parser::Font<'static> {
     ttf_parser::Font::from_data(NOTOSANS_DATA, 0).unwrap()
 }
 
+/// Licenses for fonts included in binary.
 pub fn font_licenses() -> &'static [&'static str] {
     &[
         #[cfg(feature = "font-notosans")]
@@ -24,23 +26,31 @@ pub fn font_licenses() -> &'static [&'static str] {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+/// A Font trait specific to badge generation.
 pub trait Font {
+    /// The font height relative to the badge viewbox.
     fn height(&self) -> u32;
 
+    /// Render a character glyph if it exists.
     fn render_glyph<'a>(&'a mut self, c: char) -> Option<FontGlyph<'a>>;
 
+    /// The scale of the font used in path rendering.
     fn scale(&self) -> f32 {
         1.0
     }
 
+    /// The precision of the font used in path rendering.
     fn precision(&self) -> u8 {
         1
     }
 }
 
+/// A rendered glyph.
 #[derive(Debug)]
 pub struct FontGlyph<'a> {
+    /// The path of the glyph, if it has one.
     pub path: Option<&'a str>,
+    /// The horizontal advance of the glyph.
     pub hor_advance: f32,
 }
 
@@ -53,6 +63,7 @@ struct CachedGlyph {
     hor_advance: f32,
 }
 
+/// A wrapper around a font that caches a finite number of glyph paths.
 #[derive(Debug, Clone)]
 pub struct CachedFont<T> {
     font: T,
@@ -60,6 +71,7 @@ pub struct CachedFont<T> {
 }
 
 impl<T> CachedFont<T> {
+    /// Construct a new [`CachedFont`].
     pub fn new(font: T) -> Self {
         Self {
             font,
@@ -108,6 +120,7 @@ where
 
 ///////////////////////////////////////////////////////////////////////////////
 
+/// A True Type Font with a font height and path precision.
 #[derive(Debug, Clone)]
 pub struct TrueTypeFont<'a> {
     font: &'a TrueTypeFontInner<'a>,
@@ -118,6 +131,7 @@ pub struct TrueTypeFont<'a> {
 }
 
 impl<'a> TrueTypeFont<'a> {
+    /// Construct a new [`TrueTypeFont`].
     pub fn new(font: &'a TrueTypeFontInner<'a>, font_height: f32, precision: u8) -> Self {
         let units_per_em = font.units_per_em().expect("units-per-em not found") as f32;
         let scale = font_height / units_per_em;
