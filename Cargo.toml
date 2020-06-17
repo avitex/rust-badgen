@@ -20,7 +20,6 @@ font-notosans = []
 ryu = "1"
 itoa = "0.4"
 uluru = { git = "https://github.com/avitex/uluru" }
-svgtypes = "0.5"
 ttf-parser = "0.6"
 
 [dev-dependencies]
