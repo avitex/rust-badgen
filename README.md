@@ -1,6 +1,7 @@
 [![Build Status](https://travis-ci.com/avitex/rust-badgen.svg?branch=master)](https://travis-ci.com/avitex/rust-badgen)
 [![Crate](https://img.shields.io/crates/v/badgen.svg)](https://crates.io/crates/badgen)
 [![Docs](https://docs.rs/badgen/badge.svg)](https://docs.rs/badgen)
+![Status](./data/generated/status.svg)
 
 # rust-badgen
 
