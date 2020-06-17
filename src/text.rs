@@ -75,12 +75,14 @@ pub struct FontGlyph<'a> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Clone)]
 struct CachedGlyph {
     path: Option<String>,
     character: char,
     hor_advance: f32,
 }
 
+#[derive(Debug, Clone)]
 pub struct CachedFont<T> {
     font: T,
     cache: LRUCache<[Entry<CachedGlyph>; 256]>,
