@@ -56,6 +56,7 @@ impl<'a> Style<'a> {
     pub const fn flat() -> Self {
         Self {
             gradient: None,
+            border_radius: 0,
             text_shadow_opacity: Opacity::raw(".1"),
             ..Self::classic()
         }
