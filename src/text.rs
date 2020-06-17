@@ -6,15 +6,21 @@ use uluru::{Entry, LRUCache};
 
 use super::Point;
 
+#[cfg(feature = "font-notosans")]
 const NOTOSANS_LICENSE: &str = include_str!("../data/fonts/notosans/LICENSE.txt");
+#[cfg(feature = "font-notosans")]
 const NOTOSANS_DATA: &[u8] = include_bytes!("../data/fonts/notosans/NotoSans-Regular.ttf");
 
+#[cfg(feature = "font-notosans")]
 pub fn notosans_font() -> ttf_parser::Font<'static> {
     ttf_parser::Font::from_data(NOTOSANS_DATA, 0).unwrap()
 }
 
 pub fn font_licenses() -> &'static [&'static str] {
-    &[NOTOSANS_LICENSE]
+    &[
+        #[cfg(feature = "font-notosans")]
+        NOTOSANS_LICENSE,
+    ]
 }
 
 /// Escapes bad characters for displaying within XML/HTML.
@@ -147,10 +153,10 @@ pub struct TrueTypeFont<'a> {
 }
 
 impl<'a> TrueTypeFont<'a> {
-    pub fn new(font: &'a TrueTypeFontInner<'a>, font_size: u32, precision: u8) -> Self {
+    pub fn new(font: &'a TrueTypeFontInner<'a>, font_height: f32, precision: u8) -> Self {
         let units_per_em = font.units_per_em().expect("units-per-em not found") as f32;
-        let scale = font_size as f32 / units_per_em;
-        let height = font_size as f32 * scale;
+        let scale = font_height / units_per_em;
+        let height = font_height + (font.descender() as f32 * scale);
 
         Self {
             font,
@@ -177,10 +183,7 @@ impl<'a> Font for TrueTypeFont<'a> {
                 Some(_) => Some(self.path_buffer.as_str()),
                 None => None,
             };
-            return Some(FontGlyph {
-                path,
-                hor_advance,
-            });
+            return Some(FontGlyph { path, hor_advance });
         }
         None
     }
@@ -207,7 +210,11 @@ struct PathSink<'a> {
 
 impl<'a> PathSink<'a> {
     fn new(scale: f32, precision: u8, path: &'a mut String) -> Self {
-        let precision_mod = precision as f32 * 10.0;
+        let precision_mod = if precision == 0 {
+            1.0
+        } else {
+            precision as f32 * 10.0
+        };
         Self {
             path,
             scale,

@@ -6,17 +6,6 @@
 //! | LABEL | STATUS |
 //! +-------+--------+
 //! ```
-//!
-//! | Field               | Value (viewbox units)                                                                   |
-//! | ------------------- | --------------------------------------------------------------------------------------- |
-//! | `viewbox-height`    | `2000`                                                                                  |
-//! | `viewbox-width`     | `(<label-text-width> + <middle-margin> * 2)? + <status-text-width> + <side-margin> * 2` |
-//! | `side-margin`       | `500`                                                                                   |
-//! | `middle-margin`     | `550`                                                                                   |
-//! | `line-height`       | `1100`                                                                                  |
-//! | `line-margin`       | `(<viewbox-height> - <x-height>) / 2`                                                   |
-//! | `label-text-width`  | Calculated on render                                                                    |
-//! | `status-text-width` | Calculated on render                                                                    |
 
 #![no_std]
 #![doc(html_root_url = "https://docs.rs/badgen/0.1.0")]
@@ -48,11 +37,14 @@ const GRADIENT_ID: &str = "g";
 const LABEL_PATH_ID: &str = "l";
 const STATUS_PATH_ID: &str = "s";
 
-const SIDE_MARGIN: u32 = 500;
-const MIDDLE_MARGIN: u32 = 1100;
-const LINE_HEIGHT: u32 = 1100;
-const VIEWBOX_HEIGHT: u32 = 2000;
+const VIEWBOX_SCALE: u32 = 100;
 const VIEWBOX_ORIGIN: Point = Point { x: 0, y: 0 };
+
+const VIEWBOX_HEIGHT: u32 = 20 * VIEWBOX_SCALE;
+const SIDE_MARGIN: u32 = 5 * VIEWBOX_SCALE;
+const MIDDLE_MARGIN: u32 = 11 * VIEWBOX_SCALE;
+const LINE_HEIGHT: u32 = 11 * VIEWBOX_SCALE;
+const TEXT_SHADOW_OFFSET: u32 = 1 * VIEWBOX_SCALE;
 
 #[derive(Debug, Clone, Copy)]
 pub struct Point<T = u32> {
@@ -81,17 +73,15 @@ where
     write_badge_with_font(w, style, status, label, &mut font, &mut scratch)
 }
 
-pub fn font<'a>(
-    font: &'a ttf_parser::Font<'a>,
-) -> CachedFont<TrueTypeFont<'a>> {
-    font_with_precision(font, 1)
+pub fn font<'a>(font: &'a ttf_parser::Font<'a>) -> CachedFont<TrueTypeFont<'a>> {
+    font_with_precision(font, 0)
 }
 
 pub fn font_with_precision<'a>(
     font: &'a ttf_parser::Font<'a>,
     precision: u8,
 ) -> CachedFont<TrueTypeFont<'a>> {
-    CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT, precision))
+    CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT as f32, precision))
 }
 
 pub fn write_badge_with_font<W, F>(
@@ -323,7 +313,10 @@ where
         .attr("href", format_args!("#{}", text_path_id))?
         .attr("fill", text_shadow_color)?
         .attr("opacity", text_shadow_opacity)?
-        .attr("transform", "translate(100,100)")?
+        .attr(
+            "transform",
+            format_args!("translate({0},{0})", TEXT_SHADOW_OFFSET),
+        )?
         .close_inline()?;
 
     svg.open("use")?
