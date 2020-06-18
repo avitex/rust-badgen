@@ -1,33 +1,33 @@
 //! Rust SVG badge generator with font path rendering.
-//! 
+//!
 //! ```text
 //! +-------+--------+
 //! | LABEL | STATUS |
 //! +-------+--------+
 //! ```
-//! 
+//!
 //! # Basic usage
-//! 
+//!
 //! ```rust
 //! let badge = badgen::badge(
 //!     &badgen::Style::classic(),
 //!     "status",
 //!     Some("label"),
 //! ).unwrap();
-//! 
+//!
 //! println!("{}", badge);
 //! ```
-//! 
+//!
 //! # Performance usage
-//! 
+//!
 //! Note, given this example, you would clear `out` on every render.
-//! 
+//!
 //! ```rust
 //! let font = badgen::notosans_font();
 //! let mut font = badgen::font(&font);
 //! let mut scratch = String::with_capacity(4098);
 //! let mut out = String::with_capacity(4098);
-//! 
+//!
 //! badgen::write_badge_with_font(
 //!     &mut out,
 //!     &badgen::Style::classic(),
@@ -37,7 +37,7 @@
 //!     &mut scratch,
 //! )
 //! .unwrap();
-//! 
+//!
 //! println!("{}", out);
 //! ```
 
@@ -73,6 +73,7 @@ const LABEL_PATH_ID: &str = "l";
 const STATUS_PATH_ID: &str = "s";
 
 const VIEWBOX_SCALE: u32 = 100;
+const VIEWBOX_USER_SCALE: u32 = VIEWBOX_SCALE;
 const VIEWBOX_ORIGIN: Point = Point { x: 0, y: 0 };
 
 const VIEWBOX_HEIGHT: u32 = 20 * VIEWBOX_SCALE;
@@ -119,7 +120,7 @@ pub fn font_with_precision<'a>(
 ///
 /// println!("{}", badge);
 /// ```
-#[cfg(feature = "font-notosans")]
+#[cfg(feature = "font-noto-sans")]
 pub fn badge(style: &Style<'_>, status: &str, label: Option<&str>) -> Result<String, fmt::Error> {
     let mut out = String::with_capacity(8192);
     write_badge(&mut out, style, status, label)?;
@@ -130,7 +131,7 @@ pub fn badge(style: &Style<'_>, status: &str, label: Option<&str>) -> Result<Str
 /// label.
 ///
 /// Uses the default font provided by this library.
-#[cfg(feature = "font-notosans")]
+#[cfg(feature = "font-noto-sans")]
 pub fn write_badge<W>(
     w: &mut W,
     style: &Style<'_>,
@@ -169,6 +170,7 @@ where
 
     let viewbox_scale = VIEWBOX_HEIGHT as f32 / style.height as f32;
     let line_margin = (VIEWBOX_HEIGHT - font.height()) / 2;
+    let text_spacing = style.text_spacing as f32 * VIEWBOX_USER_SCALE as f32;
 
     let mut status_path_offset = 0;
     let mut next_text_origin = Point {
@@ -178,7 +180,7 @@ where
 
     // If a label is specified, render and calculate the width.
     let label_width = if let Some(label) = label {
-        let label_width = render_text_path(font, next_text_origin, label, scratch);
+        let label_width = render_text_path(font, next_text_origin, label, text_spacing, scratch);
         status_path_offset += scratch.len();
         next_text_origin.x += label_width + MIDDLE_MARGIN;
         label_width
@@ -189,7 +191,7 @@ where
     let has_label = status_path_offset > 0;
 
     // Render the status text path into the scratch buffer.
-    let status_width = render_text_path(font, next_text_origin, status, scratch);
+    let status_width = render_text_path(font, next_text_origin, status, text_spacing, scratch);
 
     // Calculate rect widths.
     let (status_rect_width, label_rect_width) = if has_label {
@@ -288,7 +290,7 @@ where
             .attr_str("fill", "#fff")?;
 
         if style.border_radius > 0 {
-            svg.attr_int("rx", style.border_radius * VIEWBOX_SCALE)?;
+            svg.attr_int("rx", style.border_radius as u32 * VIEWBOX_USER_SCALE)?;
         }
 
         svg.close_inline()?
@@ -388,7 +390,7 @@ fn write_text_path_ref<W>(
     text_path_id: &str,
     text_shadow_color: Color<'_>,
     text_shadow_opacity: Opacity<'_>,
-    text_shadow_offset: u32,
+    text_shadow_offset: u16,
 ) -> fmt::Result
 where
     W: fmt::Write,
@@ -399,9 +401,9 @@ where
         .attr_fn("opacity", |w| write_opacity(w, text_shadow_opacity))?
         .attr_fn("transform", |mut w| {
             w.write_str("translate(")?;
-            write_int(&mut w, text_shadow_offset * VIEWBOX_SCALE)?;
+            write_int(&mut w, text_shadow_offset as u32 * VIEWBOX_USER_SCALE)?;
             w.write_char(',')?;
-            write_int(&mut w, text_shadow_offset * VIEWBOX_SCALE)?;
+            write_int(&mut w, text_shadow_offset as u32 * VIEWBOX_USER_SCALE)?;
             w.write_char(')')
         })?
         .close_inline()?;

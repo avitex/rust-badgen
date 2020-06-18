@@ -5,13 +5,13 @@ use uluru::{Entry, LRUCache};
 
 use super::Point;
 
-#[cfg(feature = "font-notosans")]
+#[cfg(feature = "font-noto-sans")]
 const NOTOSANS_LICENSE: &str = include_str!("../data/fonts/notosans/LICENSE.txt");
-#[cfg(feature = "font-notosans")]
+#[cfg(feature = "font-noto-sans")]
 const NOTOSANS_DATA: &[u8] = include_bytes!("../data/fonts/notosans/NotoSans-Regular.ttf");
 
 /// Parsed NotoSans font.
-#[cfg(feature = "font-notosans")]
+#[cfg(feature = "font-noto-sans")]
 pub fn notosans_font() -> ttf_parser::Font<'static> {
     ttf_parser::Font::from_data(NOTOSANS_DATA, 0).unwrap()
 }
@@ -19,7 +19,7 @@ pub fn notosans_font() -> ttf_parser::Font<'static> {
 /// Licenses for fonts included in binary.
 pub fn font_licenses() -> &'static [&'static str] {
     &[
-        #[cfg(feature = "font-notosans")]
+        #[cfg(feature = "font-noto-sans")]
         NOTOSANS_LICENSE,
     ]
 }
@@ -303,12 +303,14 @@ pub(crate) fn render_text_path<T: Font>(
     font: &mut T,
     origin: Point,
     text: &str,
+    letter_spacing: f32,
     path_buffer: &mut String,
 ) -> u32 {
     let mut sink = PathSink::new(font.scale(), font.precision(), path_buffer);
+    let letter_spacing = letter_spacing * font.scale();
 
     let mut next_glyph_origin = Point {
-        x: origin.x as f32,
+        x: origin.x as f32 + letter_spacing,
         y: origin.y as f32,
     };
 
@@ -320,7 +322,7 @@ pub(crate) fn render_text_path<T: Font>(
                 sink.write_move_to_abs(next_glyph_origin);
                 sink.write_str(path);
             }
-            next_glyph_origin.x += entry.hor_advance;
+            next_glyph_origin.x += entry.hor_advance + letter_spacing;
         }
     }
 

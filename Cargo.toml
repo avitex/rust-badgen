@@ -12,9 +12,9 @@ license = "MIT"
 readme = "README.md"
 
 [features]
-default = ["font-notosans"]
+default = ["font-noto-sans"]
 pretty = []
-font-notosans = []
+font-noto-sans = []
 
 [dependencies]
 ryu = "1"

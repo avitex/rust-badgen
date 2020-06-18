@@ -15,15 +15,17 @@ pub(crate) const BLACK_COLOR_HEX: &str = "2A2A2A";
 #[derive(Debug, Clone)]
 pub struct Style<'a> {
     /// The height of the badge.
-    pub height: u32,
+    pub height: u16,
     /// The border radius of the badge.
-    pub border_radius: u32,
+    pub border_radius: u16,
     /// The background color of the badge.
     ///
     /// This is specific to the status.
     pub background: Color<'a>,
     /// The text color of the badge.
     pub text_color: Color<'a>,
+    /// Spacing between letters.
+    pub text_spacing: f32,
     // TODO
     // pub text_overlay: bool,
     /// The text shadow color of the badge.
@@ -31,7 +33,7 @@ pub struct Style<'a> {
     /// The text shadow opacity of the badge.
     pub text_shadow_opacity: Opacity<'a>,
     /// The text shadow offset of the badge.
-    pub text_shadow_offset: u32,
+    pub text_shadow_offset: u16,
     /// The label background color of the badge.
     pub label_background: Option<Color<'a>>,
     /// The label text color of the badge.
@@ -40,7 +42,7 @@ pub struct Style<'a> {
     pub label_text_color: Option<Color<'a>>,
     // TODO
     // pub icon_path: Option<&'a str>,
-    // pub icon_width: u32,
+    // pub icon_width: u16,
     /// The background gradient of the badge.
     pub gradient: Option<Gradient<'a>>,
     _seal: (),
@@ -55,6 +57,7 @@ impl<'a> Style<'a> {
             background: Color::Blue,
             // text_overlay: false,
             text_color: Color::Custom("fff"),
+            text_spacing: 0.8,
             text_shadow_color: Color::Custom("000"),
             text_shadow_opacity: Opacity::raw(".25"),
             text_shadow_offset: 1,
