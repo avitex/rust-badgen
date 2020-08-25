@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use ttf_parser::{Font as TrueTypeFontInner, OutlineBuilder};
+use ttf_parser::{Face as TrueTypeFontInner, OutlineBuilder};
 use uluru::{Entry, LRUCache};
 
 use super::Point;
@@ -12,8 +12,8 @@ const NOTOSANS_DATA: &[u8] = include_bytes!("../data/fonts/notosans/NotoSans-Reg
 
 /// Parsed NotoSans font.
 #[cfg(feature = "font-noto-sans")]
-pub fn notosans_font() -> ttf_parser::Font<'static> {
-    ttf_parser::Font::from_data(NOTOSANS_DATA, 0).unwrap()
+pub fn notosans_font() -> ttf_parser::Face<'static> {
+    ttf_parser::Face::from_slice(NOTOSANS_DATA, 0).unwrap()
 }
 
 /// Licenses for fonts included in binary.

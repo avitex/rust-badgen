@@ -26,7 +26,7 @@ pub struct Style<'a> {
     pub text_color: Color<'a>,
     /// Spacing between letters.
     pub text_spacing: f32,
-    // TODO
+    // TODO: text overlay
     // pub text_overlay: bool,
     /// The text shadow color of the badge.
     pub text_shadow_color: Color<'a>,
@@ -40,7 +40,7 @@ pub struct Style<'a> {
     ///
     /// If not `None`, defaults to `text_color`.
     pub label_text_color: Option<Color<'a>>,
-    // TODO
+    // TODO: icons
     // pub icon_path: Option<&'a str>,
     // pub icon_width: u16,
     /// The background gradient of the badge.

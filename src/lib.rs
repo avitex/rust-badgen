@@ -92,14 +92,14 @@ pub struct Point<T = u32> {
 
 /// Prepares a cached True Type Font for use in generating badges with integer
 /// SVG paths.
-pub fn font<'a>(font: &'a ttf_parser::Font<'a>) -> CachedFont<TrueTypeFont<'a>> {
+pub fn font<'a>(font: &'a ttf_parser::Face<'a>) -> CachedFont<TrueTypeFont<'a>> {
     font_with_precision(font, 0)
 }
 
 /// Prepares a cached True Type Font for use in generating badges with a given
 /// precision.
 pub fn font_with_precision<'a>(
-    font: &'a ttf_parser::Font<'a>,
+    font: &'a ttf_parser::Face<'a>,
     precision: u8,
 ) -> CachedFont<TrueTypeFont<'a>> {
     CachedFont::new(TrueTypeFont::new(font, LINE_HEIGHT as f32, precision))
@@ -382,7 +382,7 @@ enum Fill<'a> {
 
 ///////////////////////////////////////////////////////////////////////////////
 
-// TODO: text overlay / acessibility
+// TODO: text overlay / accessibility
 fn write_text_path_ref<W>(
     svg: &mut SvgWrite<W>,
     _text: &str,
