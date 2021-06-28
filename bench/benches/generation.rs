@@ -1,4 +1,3 @@
-use badgen;
 use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 fn benchmarks(c: &mut Criterion) {

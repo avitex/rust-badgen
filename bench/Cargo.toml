@@ -1,0 +1,19 @@
+[package]
+name = "badgen-bench"
+version = "0.0.0"
+edition = "2018"
+publish = false
+
+[[bench]]
+name = "generation"
+harness = false
+
+[dependencies]
+criterion = { version = "0.3", features = ["real_blackbox"] }
+
+[dependencies.badgen]
+path = ".."
+
+# Prevent this from interfering with workspaces
+[workspace]
+members = ["."]

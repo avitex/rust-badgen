@@ -21,10 +21,3 @@ ryu = "1"
 itoa = "0.4"
 uluru = "2"
 ttf-parser = "0.12"
-
-[dev-dependencies]
-criterion = "0.3"
-
-[[bench]]
-name = "generation"
-harness = false
