@@ -32,7 +32,7 @@ pub trait Font {
     fn height(&self) -> u32;
 
     /// Render a character glyph if it exists.
-    fn render_glyph<'a>(&'a mut self, c: char) -> Option<FontGlyph<'a>>;
+    fn render_glyph(&mut self, c: char) -> Option<FontGlyph<'_>>;
 
     /// The scale of the font used in path rendering.
     fn scale(&self) -> f32 {
@@ -88,10 +88,10 @@ where
         self.font.height()
     }
 
-    fn render_glyph<'a>(&'a mut self, c: char) -> Option<FontGlyph<'a>> {
+    fn render_glyph(&mut self, c: char) -> Option<FontGlyph<'_>> {
         if self.cache.touch(|entry| entry.character == c) {
             return self.cache.front().map(|entry| FontGlyph {
-                path: entry.path.as_ref().map(String::as_str),
+                path: entry.path.as_deref(),
                 hor_advance: entry.hor_advance,
             });
         }
@@ -152,7 +152,7 @@ impl<'a> Font for TrueTypeFont<'a> {
         self.height
     }
 
-    fn render_glyph<'b>(&'b mut self, c: char) -> Option<FontGlyph<'b>> {
+    fn render_glyph(&mut self, c: char) -> Option<FontGlyph<'_>> {
         self.path_buffer.clear();
         let mut sink = PathSink::new(self.scale, self.precision, &mut self.path_buffer);
         if let Some(glyph_id) = self.font.glyph_index(c) {
@@ -231,7 +231,7 @@ impl<'a> PathSink<'a> {
             self.write_str(" ");
         }
         let vi32 = v as i32;
-        if self.precision == 0 || v == vi32 as f32 {
+        if self.precision == 0 || (v - vi32 as f32).abs() < f32::EPSILON {
             itoa::fmt(&mut self.path, vi32).ok();
         } else {
             let s = self.f32_buf.format_finite(v);
