@@ -47,7 +47,7 @@
     warnings,
     missing_docs,
     missing_debug_implementations,
-    intra_doc_link_resolution_failure,
+    rustdoc::all,
     rust_2018_idioms,
     unreachable_pub
 )]

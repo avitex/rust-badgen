@@ -1,7 +1,7 @@
 use alloc::string::String;
 
 use ttf_parser::{Face as TrueTypeFontInner, OutlineBuilder};
-use uluru::{Entry, LRUCache};
+use uluru::LRUCache;
 
 use super::Point;
 
@@ -67,7 +67,7 @@ struct CachedGlyph {
 #[derive(Debug, Clone)]
 pub struct CachedFont<T> {
     font: T,
-    cache: LRUCache<[Entry<CachedGlyph>; 256]>,
+    cache: LRUCache<CachedGlyph, 256>,
 }
 
 impl<T> CachedFont<T> {
