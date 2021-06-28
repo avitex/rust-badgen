@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.com/avitex/rust-badgen.svg?branch=master)](https://travis-ci.com/avitex/rust-badgen)
+[![Build Status](https://github.com/avitex/rust-badgen/workflows/build/badge.svg)](https://github.com/avitex/rust-badgen/actions?query=workflow:build)
+[![Coverage Status](https://codecov.io/gh/avitex/rust-badgen/branch/master/graph/badge.svg?token=X2LXHI8VYL)](https://codecov.io/gh/avitex/rust-badgen)
 [![Crate](https://img.shields.io/crates/v/badgen.svg)](https://crates.io/crates/badgen)
 [![Docs](https://docs.rs/badgen/badge.svg)](https://docs.rs/badgen)
 ![Status](./data/generated/status.svg)
