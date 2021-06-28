@@ -13,6 +13,7 @@ pub(crate) const BLACK_COLOR_HEX: &str = "2A2A2A";
 
 /// A badge style.
 #[derive(Debug, Clone)]
+#[non_exhaustive]
 pub struct Style<'a> {
     /// The height of the badge.
     pub height: u16,
@@ -45,7 +46,6 @@ pub struct Style<'a> {
     // pub icon_width: u16,
     /// The background gradient of the badge.
     pub gradient: Option<Gradient<'a>>,
-    _seal: (),
 }
 
 impl<'a> Style<'a> {
@@ -70,7 +70,6 @@ impl<'a> Style<'a> {
                 end: None,
                 opacity: Opacity::raw(".1"),
             }),
-            _seal: (),
         }
     }
 
