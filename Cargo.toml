@@ -20,4 +20,4 @@ font-noto-sans = []
 ryu = "1"
 itoa = "0.4"
 uluru = "2"
-ttf-parser = "0.12"
+ttf-parser = "0.13"
