@@ -18,6 +18,6 @@ font-noto-sans = []
 
 [dependencies]
 ryu = "1"
-itoa = "0.4"
+itoa = "1.0"
 uluru = "2"
 ttf-parser = "0.12"
